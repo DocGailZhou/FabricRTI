@@ -1233,15 +1233,6 @@ historical_production
 - Security testing methodologies
 - GDPR/privacy regulations knowledge
 
-### Optimized Skills Matrix with GitHub Copilot
-
-| Role | Fabric RTI | KQL | Bicep/IaC | Azure | Statistics | DevOps | GitHub Copilot |
-|------|------------|-----|-----------|-------|------------|--------|----------------|
-| Technical Lead | ★★★★★ | ★★★★★ | ★★★★☆ | ★★★★★ | ★★★☆☆ | ★★★☆☆ | ★★★★★ |
-| Full-Stack RTI Dev | ★★★★☆ | ★★★★☆ | ★★★★☆ | ★★★★☆ | ★★★☆☆ | ★★★★☆ | ★★★★★ |
-
-**Legend**: ★☆☆☆☆ = Basic, ★★☆☆☆ = Intermediate, ★★★☆☆ = Advanced, ★★★★☆ = Expert, ★★★★★ = Master
-
 ### GitHub Copilot Acceleration Benefits
 
 **Code Generation Speed**: 40-50% faster development across all languages
