@@ -313,7 +313,7 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
 - **Built-in statistical functions**: avg(), stdev(), percentile(), series_* functions
 - **60-day historical context**: EventHouse retention provides baseline data
 - **Real-time performance**: Sub-second anomaly detection
-- **No Python complexity**: Single technology stack
+- **Single technology stack**: Simplified architecture with KQL-only approach
 - **Direct Activator integration**: No data movement between systems
 
 **Complete KQL-Only Anomaly Detection:**
@@ -420,14 +420,12 @@ ShippingEvents
 
 ### **✅ BENEFITS OF KQL-ONLY APPROACH:**
 
-| **Aspect** | **KQL-Only** | **KQL + Python** |
-|------------|-------------|-------------------|
-| **Complexity** | ⭐ Simple | ⭐⭐⭐ Complex |
-| **Performance** | ⭐⭐⭐ Sub-second | ⭐⭐ Seconds |
-| **Maintenance** | ⭐⭐⭐ Single stack | ⭐⭐ Multi-stack |
-| **Team Skills** | ⭐⭐⭐ KQL only | ⭐⭐ KQL + Python |
-| **Deployment** | ⭐⭐⭐ EventHouse only | ⭐⭐ + Fabric Notebooks |
-| **Statistics Coverage** | ⭐⭐ 80-90% of needs | ⭐⭐⭐ 100% coverage |
+- **Simplicity**: Single technology stack reduces complexity
+- **Performance**: Sub-second anomaly detection and analytics
+- **Maintenance**: Unified KQL-based solution
+- **Team Skills**: Single skill requirement (KQL)
+- **Deployment**: EventHouse-only deployment model
+- **Statistics Coverage**: Comprehensive statistical functions available in KQL
 
 **KQL-Only Approach**
 
@@ -435,7 +433,7 @@ ShippingEvents
 1. **Solution Accelerator Goal**: Get 80-90% value with minimal complexity
 2. **KQL Statistical Functions**: Sufficient for most anomaly detection patterns
 3. **Single Technology Stack**: Easier deployment, maintenance, and team training
-4. **Real-time Performance**: No data movement or Python scheduling overhead
+4. **Real-time Performance**: No data movement or scheduling overhead
 5. **GitHub Copilot Friendly**: KQL generation is excellent with Copilot
 
 **KQL Analytics Features:**
@@ -1194,14 +1192,14 @@ historical_production
 - End-to-end feature implementation (backend + frontend + infrastructure)
 
 **Key Skills**:
-- Python + KQL + JavaScript/TypeScript development
+- KQL + JavaScript/TypeScript development
 - Microsoft Fabric RTI + Azure DevOps automation
 - Bicep/IaC + GitHub Actions/Azure Pipelines
 - Multi-domain development capabilities
 - **GitHub Copilot expert users for rapid development**
 
 **GitHub Copilot Impact**: 
-- 40-50% faster code generation across Python, KQL, JavaScript, Bicep
+- 40-50% faster code generation across KQL, JavaScript, Bicep
 - Automated test creation and debugging assistance
 - Quick API development and integration scripts
 - Accelerated documentation and inline comments
@@ -1237,10 +1235,10 @@ historical_production
 
 ### Optimized Skills Matrix with GitHub Copilot
 
-| Role | Fabric RTI | KQL | Python | Bicep/IaC | Azure | Statistics | DevOps | GitHub Copilot |
-|------|------------|-----|--------|-----------|-------|------------|--------|----------------|
-| Technical Lead | ★★★★★ | ★★★★★ | ★★★☆☆ | ★★★★☆ | ★★★★★ | ★★★☆☆ | ★★★☆☆ | ★★★★★ |
-| Full-Stack RTI Dev | ★★★★☆ | ★★★★☆ | ★★★★★ | ★★★★☆ | ★★★★☆ | ★★★☆☆ | ★★★★☆ | ★★★★★ |
+| Role | Fabric RTI | KQL | Bicep/IaC | Azure | Statistics | DevOps | GitHub Copilot |
+|------|------------|-----|-----------|-------|------------|--------|----------------|
+| Technical Lead | ★★★★★ | ★★★★★ | ★★★★☆ | ★★★★★ | ★★★☆☆ | ★★★☆☆ | ★★★★★ |
+| Full-Stack RTI Dev | ★★★★☆ | ★★★★☆ | ★★★★☆ | ★★★★☆ | ★★★☆☆ | ★★★★☆ | ★★★★★ |
 
 **Legend**: ★☆☆☆☆ = Basic, ★★☆☆☆ = Intermediate, ★★★☆☆ = Advanced, ★★★★☆ = Expert, ★★★★★ = Master
 
@@ -1437,8 +1435,8 @@ microsoft/fabric-rti-solution-accelerator/
 │   └── troubleshooting.md
 ├── scripts/                           # Deployment and utility scripts
 │   ├── deploy.ps1                     # PowerShell deployment script
-│   ├── setup_data.py                  # Data setup automation
-│   └── validate_deployment.py         # Post-deployment validation
+│   ├── setup_data.ps1                 # Data setup automation
+│   └── validate_deployment.ps1        # Post-deployment validation
 └── samples/                           # Sample configurations
     ├── sample_data/
     └── sample_configs/
@@ -1456,12 +1454,10 @@ metadata:
 services:
   fabric-workspace:
     project: ./src
-    language: python
     host: fabric
     
   data-simulators:
     project: ./src/simulators  
-    language: python
     host: fabric
 
 infra:
@@ -1550,23 +1546,23 @@ Write-Host "🚀 Setting up Fabric RTI Solution Accelerator..." -ForegroundColor
 
 # 1. Deploy EventHouse schema
 Write-Host "📊 Creating EventHouse tables and mappings..."
-& python scripts/setup_eventhouse_schema.py --env $EnvironmentName
+& ./scripts/setup_eventhouse_schema.ps1 -env $EnvironmentName
 
 # 2. Configure EventStream endpoints
 Write-Host "🔄 Configuring EventStream endpoints..."
-& python scripts/setup_eventstream.py --env $EnvironmentName
+& ./scripts/setup_eventstream.ps1 -env $EnvironmentName
 
-# 3. Deploy sample notebooks
-Write-Host "📓 Deploying analytics notebooks..."
-& python scripts/deploy_notebooks.py --env $EnvironmentName
+# 3. Deploy analytics queries
+Write-Host "� Deploying analytics queries..."
+& ./scripts/deploy_queries.ps1 -env $EnvironmentName
 
 # 4. Start data simulators
 Write-Host "⚡ Starting data simulators..."
-& python scripts/start_simulators.py --env $EnvironmentName --duration 300
+& ./scripts/start_simulators.ps1 -env $EnvironmentName -duration 300
 
 # 5. Validate deployment
 Write-Host "✅ Validating deployment..."
-& python scripts/validate_deployment.py --env $EnvironmentName
+& ./scripts/validate_deployment.ps1 -env $EnvironmentName
 
 Write-Host "🎉 Deployment completed successfully!" -ForegroundColor Green
 Write-Host "📈 Access your RTI dashboards at: https://fabric.microsoft.com/workspace/$workspaceId" -ForegroundColor Blue
@@ -1652,12 +1648,12 @@ ML is not required for initial implementation success.
 **KQL-Only Approach Benefits:**
 
 - **80-90% of anomaly detection value** using KQL statistical functions
-- **Faster development** (3-4 weeks saved, no Python integration)
+- **Faster development** (3-4 weeks saved with simplified integration)
 - **Simpler architecture** (single technology stack)
 - **Better performance** (sub-second detection, no data movement)
-- **Easier maintenance** (no Python notebooks, scheduling, or dependencies)
+- **Easier maintenance** (no complex notebooks, scheduling, or dependencies)
 - **Better explainability** (business users understand z-scores and percentiles)
-- **Reduced skill requirements** (KQL only vs KQL + Python)
+- **Reduced skill requirements** (KQL-only approach)
 
 **KQL Can Handle Most Use Cases:**
 ```sql
