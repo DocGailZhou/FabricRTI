@@ -1,0 +1,124 @@
+// ========================================================================
+// Microsoft Fabric RTI Solution Accelerator - Clickstream Database
+// EventHouse: fabrikam_eventhouse
+// Database: clickstream_db
+// ========================================================================
+
+// 🔍 CONTEXT VALIDATION
+// Validate we're in the correct database before proceeding
+let expectedDatabase = "clickstream_db";
+let currentDatabase = toscalar(.show database | project DatabaseName | take 1);
+let isCorrectContext = currentDatabase == expectedDatabase;
+
+// Display validation results
+print strcat("🎯 Expected Database: ", expectedDatabase)
+print strcat("📍 Current Database: ", currentDatabase)
+print strcat("✅ Context Valid: ", tostring(isCorrectContext))
+
+print case(
+    isCorrectContext, 
+    "🚀 CONTEXT VALIDATED - Proceeding with clickstream table creation...",
+    "❌ WRONG CONTEXT - Please navigate to 'clickstream_db' before running this script!"
+)
+
+// ========================================================================
+// CLICKSTREAM TABLES
+// ========================================================================
+
+// CLICKSTREAM EVENTS TABLE
+.create table ClickstreamEvents (
+    event_id: string,                    // UUID from simulator
+    timestamp: datetime,                 // ISO format from simulator
+    event_type: string,                  // page_view, product_click, add_to_cart, etc.
+    user_id: string,                     // UUID from simulator
+    session_id: string,                  // UUID from simulator
+    sku: string,                         // SKU4000-SKU4019 from simulator
+    country: string,                     // Germany, United States, etc.
+    country_code: string,                // DE, US, UK, etc.
+    referral_source_type: string,        // search, social, direct, affiliate
+    referral_platform: string,           // Google, Facebook, etc.
+    product_id: string,                  // PROD4000-PROD4019 from simulator
+    spike_flag: bool,                    // Anomaly indicator from simulator
+    cart_spike_magnitude: int,           // 0-100 from simulator
+    client_info: dynamic,                // Browser, OS, Device info
+    payload: dynamic                     // Event-specific data (price, cart_items, etc.)
+)
+
+// ANOMALY DETECTION RESULTS TABLE (Centralized in clickstream_db)
+.create table AnomalyDetectionResults (
+    timestamp: datetime,
+    anomaly_type: string,               // clickstream_spike, manufacturing_outlier, shipping_delay, etc.
+    source_table: string,               // ClickstreamEvents, ManufacturingTelemetry, ShippingEvents
+    source_database: string,            // manufacturing_db, shipping_db, clickstream_db
+    entity_id: string,                  // ProductId, AssetId, etc.
+    anomaly_score: real,                // Calculated anomaly score
+    baseline_value: real,               // Historical baseline
+    current_value: real,                // Current observed value
+    severity: string,                   // Low, Medium, High, Critical
+    description: string,                // Human readable description
+    metadata: dynamic                   // Additional context
+)
+
+// ========================================================================
+// JSON INGESTION MAPPINGS
+// ========================================================================
+
+// CLICKSTREAM JSON MAPPING
+.create table ClickstreamEvents ingestion json mapping "ClickstreamMapping"
+'['
+'    {"column":"event_id","path":"$.event_id"},'
+'    {"column":"timestamp","path":"$.timestamp"},'
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"user_id","path":"$.user_id"},'
+'    {"column":"session_id","path":"$.session_id"},'
+'    {"column":"sku","path":"$.sku"},'
+'    {"column":"country","path":"$.country"},'
+'    {"column":"country_code","path":"$.country_code"},'
+'    {"column":"referral_source_type","path":"$.referral_source_type"},'
+'    {"column":"referral_platform","path":"$.referral_platform"},'
+'    {"column":"product_id","path":"$.product_id"},'
+'    {"column":"spike_flag","path":"$.spike_flag"},'
+'    {"column":"cart_spike_magnitude","path":"$.cart_spike_magnitude"},'
+'    {"column":"client_info","path":"$.client_info"},'
+'    {"column":"payload","path":"$.payload"}'
+']'
+
+// ========================================================================
+// POLICIES
+// ========================================================================
+
+// Enable streaming ingestion
+.alter table ClickstreamEvents policy streamingingestion enable
+.alter table AnomalyDetectionResults policy streamingingestion enable
+
+// Clickstream: 30-day retention
+.alter table ClickstreamEvents policy retention '{
+    "SoftDeletePeriod": "30.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// Anomaly Results: 12-month retention
+.alter table AnomalyDetectionResults policy retention '{
+    "SoftDeletePeriod": "365.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// ========================================================================
+// VERIFICATION
+// ========================================================================
+
+print "🔍 CLICKSTREAM DATABASE VERIFICATION:"
+.show tables
+
+print "📋 TABLE SCHEMAS:"
+.show table ClickstreamEvents schema
+.show table AnomalyDetectionResults schema
+
+print "🗂️ INGESTION MAPPINGS:"
+.show table ClickstreamEvents ingestion json mappings
+
+print "🌊 STREAMING POLICIES:"
+.show table ClickstreamEvents policy streamingingestion
+.show table AnomalyDetectionResults policy streamingingestion
+
+print "✅ Clickstream database setup complete!"

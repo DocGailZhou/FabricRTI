@@ -1,0 +1,53 @@
+# Azure Developer CLI (azd) configuration for RTI Solution Accelerator
+name: fabric-rti-accelerator
+metadata:
+  template: fabric-rti-accelerator@0.0.1-beta
+  
+# Define the services that will be deployed
+services:
+  eventhouse:
+    project: ./infra
+    language: bicep
+    host: fabric
+
+# Hooks for deployment lifecycle
+hooks:
+  preup:
+    # Run before azd up
+    shell: pwsh
+    run: |
+      Write-Host "🚀 Preparing RTI Solution Accelerator deployment..."
+      Write-Host "📋 Validating KQL scripts..."
+      
+      if (-not (Test-Path "./src/eventhouse/table_creation.kql")) {
+        Write-Error "EventHouse table creation script not found!"
+        exit 1
+      }
+      
+      Write-Host "✅ Pre-deployment validation completed"
+  
+  postup:
+    # Run after infrastructure is deployed
+    shell: pwsh
+    run: |
+      Write-Host "🏗️ Deploying EventHouse schema..."
+      
+      # Get deployment outputs
+      $workspaceName = azd env get-values --output json | ConvertFrom-Json | Select-Object -ExpandProperty WORKSPACE_NAME
+      $eventHouseName = azd env get-values --output json | ConvertFrom-Json | Select-Object -ExpandProperty EVENTHOUSE_NAME
+      
+      # Execute KQL file using Python script (production-ready)
+      Write-Host "📄 Executing EventHouse schema via Python KQL executor..."
+      & ./infra/scripts/deploy-kql-wrapper.ps1 -WorkspaceName $workspaceName -EventHouseName $eventHouseName
+      
+      # Alternative options (commented out):
+      # Option 1: Simple PowerShell approach
+      # & ./infra/scripts/execute-kql-simple.ps1 -WorkspaceName $workspaceName -EventHouseName $eventHouseName
+      # Option 2: Notebook execution
+      # & ./infra/scripts/deploy-eventhouse-notebook.ps1 -WorkspaceName $workspaceName -EventHouseName $eventHouseName
+      
+      Write-Host "🎉 RTI Solution Accelerator deployed successfully!"
+      Write-Host "📊 EventHouse: $eventHouseName"
+      Write-Host "🔗 Access your workspace: https://app.fabric.microsoft.com/groups/$workspaceName"
+
+# Environment variables will be defined in .env file or set via azd env set

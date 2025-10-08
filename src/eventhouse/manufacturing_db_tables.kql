@@ -1,0 +1,131 @@
+// ========================================================================
+// Microsoft Fabric RTI Solution Accelerator - Manufacturing Database
+// EventHouse: fabrikam_eventhouse
+// Database: manufacturing_db
+// ========================================================================
+
+// 🔍 CONTEXT VALIDATION
+// Validate we're in the correct database before proceeding
+let expectedDatabase = "manufacturing_db";
+let currentDatabase = toscalar(.show database | project DatabaseName | take 1);
+let isCorrectContext = currentDatabase == expectedDatabase;
+
+// Display validation results
+print strcat("🎯 Expected Database: ", expectedDatabase)
+print strcat("📍 Current Database: ", currentDatabase)
+print strcat("✅ Context Valid: ", tostring(isCorrectContext))
+
+print case(
+    isCorrectContext, 
+    "🚀 CONTEXT VALIDATED - Proceeding with manufacturing table creation...",
+    "❌ WRONG CONTEXT - Please navigate to 'manufacturing_db' before running this script!"
+)
+
+// ========================================================================
+// MANUFACTURING TABLES
+// ========================================================================
+
+// MANUFACTURING TELEMETRY TABLE
+.create table ManufacturingTelemetry (
+    event_type: string,                  // "production" event type
+    timestamp: datetime,                 // ISO format timestamp
+    SiteId: string,                      // Manufacturing site identifier
+    City: string,                        // Production facility city
+    AssetId: string,                     // Equipment/machine identifier
+    OperatorId: string,                  // Operator identifier
+    OperatorName: string,                // Operator name
+    ProductId: string,                   // Product being manufactured
+    SKU: string,                         // Stock keeping unit
+    BatchId: string,                     // Production batch identifier
+    DefectProbability: real,             // Quality metric (0.0-1.0)
+    Vibration: real,                     // Equipment vibration reading
+    Temperature: real,                   // Operating temperature
+    Humidity: int                        // Environmental humidity
+)
+
+// SITES REFERENCE TABLE
+.create table Sites (
+    SiteId: string,
+    City: string,
+    Country: string,
+    Region: string,
+    Latitude: real,
+    Longitude: real
+)
+
+// ASSETS REFERENCE TABLE
+.create table Assets (
+    AssetId: string,
+    AssetName: string,
+    AssetType: string,
+    SiteId: string,
+    InstallationDate: datetime,
+    MaintenanceSchedule: string
+)
+
+// ========================================================================
+// JSON INGESTION MAPPING
+// ========================================================================
+
+// MANUFACTURING JSON MAPPING
+.create table ManufacturingTelemetry ingestion json mapping "ManufacturingMapping"
+'['
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"timestamp","path":"$.timestamp"},'
+'    {"column":"SiteId","path":"$.SiteId"},'
+'    {"column":"City","path":"$.City"},'
+'    {"column":"AssetId","path":"$.AssetId"},'
+'    {"column":"OperatorId","path":"$.OperatorId"},'  
+'    {"column":"OperatorName","path":"$.OperatorName"},'
+'    {"column":"ProductId","path":"$.ProductId"},'
+'    {"column":"SKU","path":"$.SKU"},'
+'    {"column":"BatchId","path":"$.BatchId"},'
+'    {"column":"DefectProbability","path":"$.DefectProbability"},'
+'    {"column":"Vibration","path":"$.Vibration"},'
+'    {"column":"Temperature","path":"$.Temperature"},'
+'    {"column":"Humidity","path":"$.Humidity"}'
+']'
+
+// ========================================================================
+// POLICIES
+// ========================================================================
+
+// Enable streaming ingestion
+.alter table ManufacturingTelemetry policy streamingingestion enable
+
+// Manufacturing: 90-day retention
+.alter table ManufacturingTelemetry policy retention '{
+    "SoftDeletePeriod": "90.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// Reference tables: Long-term retention
+.alter table Sites policy retention '{
+    "SoftDeletePeriod": "3650.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+.alter table Assets policy retention '{
+    "SoftDeletePeriod": "3650.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// ========================================================================
+// VERIFICATION
+// ========================================================================
+
+print "🔍 MANUFACTURING DATABASE VERIFICATION:"
+.show tables
+
+print "📋 TABLE SCHEMAS:"
+.show table ManufacturingTelemetry schema
+.show table Sites schema
+.show table Assets schema
+
+print "🗂️ INGESTION MAPPINGS:"
+.show table ManufacturingTelemetry ingestion json mappings
+
+print "🌊 STREAMING POLICIES:"
+.show table ManufacturingTelemetry policy streamingingestion
+
+print "✅ Manufacturing database setup complete!"

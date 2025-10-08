@@ -1,0 +1,114 @@
+// ========================================================================
+// Microsoft Fabric RTI Solution Accelerator - Shipping Database
+// EventHouse: fabrikam_eventhouse
+// Database: shipping_db
+// ========================================================================
+
+// 🔍 CONTEXT VALIDATION
+// Validate we're in the correct database before proceeding
+let expectedDatabase = "shipping_db";
+let currentDatabase = toscalar(.show database | project DatabaseName | take 1);
+let isCorrectContext = currentDatabase == expectedDatabase;
+
+// Display validation results
+print strcat("🎯 Expected Database: ", expectedDatabase)
+print strcat("📍 Current Database: ", currentDatabase)
+print strcat("✅ Context Valid: ", tostring(isCorrectContext))
+
+print case(
+    isCorrectContext, 
+    "🚀 CONTEXT VALIDATED - Proceeding with shipping table creation...",
+    "❌ WRONG CONTEXT - Please navigate to 'shipping_db' before running this script!"
+)
+
+// ========================================================================
+// SHIPPING TABLES
+// ========================================================================
+
+// SHIPPING EVENTS TABLE
+.create table ShippingEvents (
+    event_id: string,                    // Unique event identifier
+    timestamp: datetime,                 // Event timestamp
+    event_type: string,                  // shipment_created, in_transit, delivered, etc.
+    tracking_number: string,             // Package tracking identifier
+    shipment_id: string,                 // Shipment batch identifier
+    origin_location: string,             // Shipping origin
+    destination_location: string,        // Delivery destination
+    carrier: string,                     // Shipping carrier (UPS, FedEx, etc.)
+    package_weight: real,                // Package weight in kg
+    estimated_delivery: datetime,        // Estimated delivery time
+    actual_delivery: datetime,           // Actual delivery time (if delivered)
+    delay_minutes: int,                  // Delivery delay in minutes
+    status: string,                      // Current status
+    location_coordinates: dynamic       // Current GPS coordinates
+)
+
+// CARRIERS REFERENCE TABLE
+.create table Carriers (
+    CarrierId: string,
+    CarrierName: string,
+    ServiceLevel: string,
+    Coverage_Area: string,
+    AvgDeliveryTime: int
+)
+
+// ========================================================================
+// JSON INGESTION MAPPING
+// ========================================================================
+
+// SHIPPING JSON MAPPING
+.create table ShippingEvents ingestion json mapping "ShippingMapping" 
+'['
+'    {"column":"event_id","path":"$.event_id"},'
+'    {"column":"timestamp","path":"$.timestamp"},'
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"tracking_number","path":"$.tracking_number"},'
+'    {"column":"shipment_id","path":"$.shipment_id"},'
+'    {"column":"origin_location","path":"$.origin_location"},'
+'    {"column":"destination_location","path":"$.destination_location"},'
+'    {"column":"carrier","path":"$.carrier"},'
+'    {"column":"package_weight","path":"$.package_weight"},'
+'    {"column":"estimated_delivery","path":"$.estimated_delivery"},'
+'    {"column":"actual_delivery","path":"$.actual_delivery"},'
+'    {"column":"delay_minutes","path":"$.delay_minutes"},'
+'    {"column":"status","path":"$.status"},'
+'    {"column":"location_coordinates","path":"$.location_coordinates"}'
+']'
+
+// ========================================================================
+// POLICIES
+// ========================================================================
+
+// Enable streaming ingestion
+.alter table ShippingEvents policy streamingingestion enable
+
+// Shipping: 90-day retention
+.alter table ShippingEvents policy retention '{
+    "SoftDeletePeriod": "90.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// Reference tables: Long-term retention
+.alter table Carriers policy retention '{
+    "SoftDeletePeriod": "3650.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// ========================================================================
+// VERIFICATION
+// ========================================================================
+
+print "🔍 SHIPPING DATABASE VERIFICATION:"
+.show tables
+
+print "📋 TABLE SCHEMAS:"
+.show table ShippingEvents schema
+.show table Carriers schema
+
+print "🗂️ INGESTION MAPPINGS:"
+.show table ShippingEvents ingestion json mappings
+
+print "🌊 STREAMING POLICIES:"
+.show table ShippingEvents policy streamingingestion
+
+print "✅ Shipping database setup complete!"

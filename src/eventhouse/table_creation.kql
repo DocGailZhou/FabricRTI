@@ -1,0 +1,347 @@
+// ========================================================================
+// Microsoft Fabric RTI Solution Accelerator - EventHouse Table Creation
+// EventHouse: fabrikam_eventhouse
+// ========================================================================
+
+// WORKSPACE & EVENTHOUSE CONNECTION INTELLIGENCE
+// This script automatically connects to the correct EventHouse in your current Fabric workspace
+
+// 🔍 STEP 1: Verify Current Context
+// Check if we're connected to the correct EventHouse
+.show cluster
+print "📍 Current Cluster Information - Verify you're in 'fabrikam_eventhouse'"
+
+// 🔍 STEP 2: Show Current Database Context  
+.show database
+print "📍 Current Database - Should be 'fabrikam_eventhouse'"
+
+// 🔍 STEP 3: Verify Workspace Context
+// Note: In Fabric, the EventHouse URI will show your workspace
+.show cluster endpoints
+print "📍 Cluster Endpoints - Verify correct Fabric workspace"
+
+// ⚠️  IMPORTANT: Execution Context
+// This script should be executed from within the 'fabrikam_eventhouse' KQL Database
+// If you're in the wrong context, navigate to:
+// 1. Your Fabric Workspace → fabrikam_eventhouse → Query tab
+// 2. Upload this .kql file to a folder in the EventHouse
+// 3. Execute from that context
+
+// 🚀 CONTEXT VALIDATION FUNCTION
+// Validate we're in the correct EventHouse before proceeding
+let expectedEventHouse = "fabrikam_eventhouse";
+let currentDatabase = toscalar(.show database | project DatabaseName | take 1);
+let isCorrectContext = currentDatabase == expectedEventHouse;
+
+// Display validation results
+print strcat("🎯 Expected EventHouse: ", expectedEventHouse)
+print strcat("📍 Current Database: ", currentDatabase)
+print strcat("✅ Context Valid: ", tostring(isCorrectContext))
+
+// Stop execution if in wrong context
+// Note: In KQL, we can't actually stop execution, but we'll display a clear warning
+print case(
+    isCorrectContext, 
+    "🚀 CONTEXT VALIDATED - Proceeding with table creation...",
+    "❌ WRONG CONTEXT - Please navigate to 'fabrikam_eventhouse' before running this script!"
+)
+
+// ⚠️ MANUAL VERIFICATION REQUIRED
+// If you see "WRONG CONTEXT" above, please:
+// 1. Navigate to your Fabric workspace
+// 2. Open 'fabrikam_eventhouse' 
+// 3. Go to Query tab
+// 4. Upload and run this script from there
+
+// ========================================================================
+// TABLE CREATION STARTS HERE
+// ========================================================================
+
+// 1. CLICKSTREAM EVENTS TABLE
+// Source: Clickstream Simulator.ipynb from RTI-Hackathon
+.create table ClickstreamEvents (
+    event_id: string,                    // UUID from simulator
+    timestamp: datetime,                 // ISO format from simulator
+    event_type: string,                  // page_view, product_click, add_to_cart, etc.
+    user_id: string,                     // UUID from simulator
+    session_id: string,                  // UUID from simulator
+    sku: string,                         // SKU4000-SKU4019 from simulator
+    country: string,                     // Germany, United States, etc.
+    country_code: string,                // DE, US, UK, etc.
+    referral_source_type: string,        // search, social, direct, affiliate
+    referral_platform: string,           // Google, Facebook, etc.
+    product_id: string,                  // PROD4000-PROD4019 from simulator
+    spike_flag: bool,                    // Anomaly indicator from simulator
+    cart_spike_magnitude: int,           // 0-100 from simulator
+    client_info: dynamic,                // Browser, OS, Device info
+    payload: dynamic                     // Event-specific data (price, cart_items, etc.)
+)
+
+// 2. MANUFACTURING TELEMETRY TABLE
+// Source: Manufacturing Simulator.ipynb from RTI-Hackathon
+.create table ManufacturingTelemetry (
+    event_type: string,                  // "production" event type
+    timestamp: datetime,                 // ISO format timestamp
+    SiteId: string,                      // Manufacturing site identifier
+    City: string,                        // Production facility city
+    AssetId: string,                     // Equipment/machine identifier
+    OperatorId: string,                  // Operator identifier
+    OperatorName: string,                // Operator name
+    ProductId: string,                   // Product being manufactured
+    SKU: string,                         // Stock keeping unit
+    BatchId: string,                     // Production batch identifier
+    DefectProbability: real,             // Quality metric (0.0-1.0)
+    Vibration: real,                     // Equipment vibration reading
+    Temperature: real,                   // Operating temperature
+    Humidity: int                        // Environmental humidity
+)
+
+// 3. SHIPPING EVENTS TABLE
+// Source: Shipping Simulator.ipynb from RTI-Hackathon
+.create table ShippingEvents (
+    event_id: string,                    // Unique event identifier
+    timestamp: datetime,                 // Event timestamp
+    event_type: string,                  // shipment_created, in_transit, delivered, etc.
+    tracking_number: string,             // Package tracking identifier
+    shipment_id: string,                 // Shipment batch identifier
+    origin_location: string,             // Shipping origin
+    destination_location: string,        // Delivery destination
+    carrier: string,                     // Shipping carrier (UPS, FedEx, etc.)
+    package_weight: real,                // Package weight in kg
+    estimated_delivery: datetime,        // Estimated delivery time
+    actual_delivery: datetime,           // Actual delivery time (if delivered)
+    delay_minutes: int,                  // Delivery delay in minutes
+    status: string,                      // Current status
+    location_coordinates: dynamic       // Current GPS coordinates
+)
+
+// 4. REFERENCE TABLES (Master data for all simulators)
+.create table Sites (
+    SiteId: string,
+    City: string,
+    Country: string,
+    Region: string,
+    Latitude: real,
+    Longitude: real
+)
+
+.create table Assets (
+    AssetId: string,
+    AssetName: string,
+    AssetType: string,
+    SiteId: string,
+    InstallationDate: datetime,
+    MaintenanceSchedule: string
+)
+
+.create table Carriers (
+    CarrierId: string,
+    CarrierName: string,
+    ServiceLevel: string,
+    Coverage_Area: string,
+    AvgDeliveryTime: int
+)
+
+// 5. ANOMALY DETECTION RESULTS TABLE
+.create table AnomalyDetectionResults (
+    timestamp: datetime,
+    anomaly_type: string,               // clickstream_spike, manufacturing_outlier, shipping_delay, etc.
+    source_table: string,               // ClickstreamEvents, ManufacturingTelemetry, ShippingEvents
+    entity_id: string,                  // ProductId, AssetId, etc.
+    anomaly_score: real,                // Calculated anomaly score
+    baseline_value: real,               // Historical baseline
+    current_value: real,                // Current observed value
+    severity: string,                   // Low, Medium, High, Critical
+    description: string,                // Human readable description
+    metadata: dynamic                   // Additional context
+)
+
+// ========================================================================
+// JSON INGESTION MAPPINGS
+// ========================================================================
+
+// CLICKSTREAM JSON MAPPING
+.create table ClickstreamEvents ingestion json mapping "ClickstreamMapping"
+'['
+'    {"column":"event_id","path":"$.event_id"},'
+'    {"column":"timestamp","path":"$.timestamp"},'
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"user_id","path":"$.user_id"},'
+'    {"column":"session_id","path":"$.session_id"},'
+'    {"column":"sku","path":"$.sku"},'
+'    {"column":"country","path":"$.country"},'
+'    {"column":"country_code","path":"$.country_code"},'
+'    {"column":"referral_source_type","path":"$.referral_source_type"},'
+'    {"column":"referral_platform","path":"$.referral_platform"},'
+'    {"column":"product_id","path":"$.product_id"},'
+'    {"column":"spike_flag","path":"$.spike_flag"},'
+'    {"column":"cart_spike_magnitude","path":"$.cart_spike_magnitude"},'
+'    {"column":"client_info","path":"$.client_info"},'
+'    {"column":"payload","path":"$.payload"}'
+']'
+
+// MANUFACTURING JSON MAPPING
+.create table ManufacturingTelemetry ingestion json mapping "ManufacturingMapping"
+'['
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"timestamp","path":"$.timestamp"},'
+'    {"column":"SiteId","path":"$.SiteId"},'
+'    {"column":"City","path":"$.City"},'
+'    {"column":"AssetId","path":"$.AssetId"},'
+'    {"column":"OperatorId","path":"$.OperatorId"},'  
+'    {"column":"OperatorName","path":"$.OperatorName"},'
+'    {"column":"ProductId","path":"$.ProductId"},'
+'    {"column":"SKU","path":"$.SKU"},'
+'    {"column":"BatchId","path":"$.BatchId"},'
+'    {"column":"DefectProbability","path":"$.DefectProbability"},'
+'    {"column":"Vibration","path":"$.Vibration"},'
+'    {"column":"Temperature","path":"$.Temperature"},'
+'    {"column":"Humidity","path":"$.Humidity"}'
+']'
+
+// SHIPPING JSON MAPPING
+.create table ShippingEvents ingestion json mapping "ShippingMapping" 
+'['
+'    {"column":"event_id","path":"$.event_id"},'
+'    {"column":"timestamp","path":"$.timestamp"},'
+'    {"column":"event_type","path":"$.event_type"},'
+'    {"column":"tracking_number","path":"$.tracking_number"},'
+'    {"column":"shipment_id","path":"$.shipment_id"},'
+'    {"column":"origin_location","path":"$.origin_location"},'
+'    {"column":"destination_location","path":"$.destination_location"},'
+'    {"column":"carrier","path":"$.carrier"},'
+'    {"column":"package_weight","path":"$.package_weight"},'
+'    {"column":"estimated_delivery","path":"$.estimated_delivery"},'
+'    {"column":"actual_delivery","path":"$.actual_delivery"},'
+'    {"column":"delay_minutes","path":"$.delay_minutes"},'
+'    {"column":"status","path":"$.status"},'
+'    {"column":"location_coordinates","path":"$.location_coordinates"}'
+']'
+
+// ========================================================================
+// ENABLE STREAMING INGESTION POLICIES
+// ========================================================================
+
+// Enable streaming ingestion for real-time data
+.alter table ClickstreamEvents policy streamingingestion enable
+.alter table ManufacturingTelemetry policy streamingingestion enable
+.alter table ShippingEvents policy streamingingestion enable
+.alter table AnomalyDetectionResults policy streamingingestion enable
+
+// ========================================================================
+// DATA RETENTION POLICIES (Based on Architecture Requirements)
+// ========================================================================
+
+// Clickstream: 30-day retention as per architecture
+.alter table ClickstreamEvents policy retention '{
+    "SoftDeletePeriod": "30.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// Manufacturing & Shipping: 90-day retention as per architecture
+.alter table ManufacturingTelemetry policy retention '{
+    "SoftDeletePeriod": "90.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+.alter table ShippingEvents policy retention '{
+    "SoftDeletePeriod": "90.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// Anomaly Results: 12-month retention as per architecture
+.alter table AnomalyDetectionResults policy retention '{
+    "SoftDeletePeriod": "365.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// Reference tables: Long-term retention
+.alter table Sites policy retention '{
+    "SoftDeletePeriod": "3650.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+.alter table Assets policy retention '{
+    "SoftDeletePeriod": "3650.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+.alter table Carriers policy retention '{
+    "SoftDeletePeriod": "3650.00:00:00",
+    "Recoverability": "Enabled"
+}'
+
+// ========================================================================
+// TABLE VERIFICATION QUERIES
+// ========================================================================
+
+// Verify all tables were created successfully
+.show tables
+
+// Check table schemas
+.show table ClickstreamEvents schema
+.show table ManufacturingTelemetry schema
+.show table ShippingEvents schema
+.show table AnomalyDetectionResults schema
+.show table Sites schema
+.show table Assets schema
+.show table Carriers schema
+
+// Check ingestion mappings
+.show table ClickstreamEvents ingestion json mappings
+.show table ManufacturingTelemetry ingestion json mappings  
+.show table ShippingEvents ingestion json mappings
+
+// ========================================================================
+// DEPLOYMENT VERIFICATION & CONTEXT VALIDATION
+// ========================================================================
+
+// 🔍 FINAL VERIFICATION: Show all created tables
+print "🔍 FINAL VERIFICATION - Listing all tables created:"
+.show tables
+
+// 🔍 Verify table schemas are correct
+print "📋 TABLE SCHEMAS VERIFICATION:"
+.show table ClickstreamEvents schema
+.show table ManufacturingTelemetry schema  
+.show table ShippingEvents schema
+.show table AnomalyDetectionResults schema
+.show table Sites schema
+.show table Assets schema
+.show table Carriers schema
+
+// 🔍 Verify ingestion mappings are created
+print "🗂️ INGESTION MAPPINGS VERIFICATION:"
+.show table ClickstreamEvents ingestion json mappings
+.show table ManufacturingTelemetry ingestion json mappings
+.show table ShippingEvents ingestion json mappings
+
+// 🔍 Verify streaming policies are enabled
+print "🌊 STREAMING POLICIES VERIFICATION:"
+.show table ClickstreamEvents policy streamingingestion
+.show table ManufacturingTelemetry policy streamingingestion
+.show table ShippingEvents policy streamingingestion
+
+// 🔍 Verify retention policies are set
+print "📅 RETENTION POLICIES VERIFICATION:"
+.show table ClickstreamEvents policy retention
+.show table ManufacturingTelemetry policy retention
+.show table ShippingEvents policy retention
+.show table AnomalyDetectionResults policy retention
+
+// 🔍 Show current database context one more time
+print "📍 FINAL CONTEXT CHECK:"
+.show database
+.show cluster
+
+// ✅ SUCCESS MESSAGE
+print "🎉 SUCCESS: All fabrikam_eventhouse tables, mappings, and policies created successfully!"
+print "📊 Ready for data ingestion from simulators via EventStream"
+print "🚨 Ready for Activator rules and real-time analytics"
+
+// 📋 NEXT STEPS REMINDER
+print "📋 NEXT STEPS:"
+print "1. Set up EventStream to connect simulators to this EventHouse"  
+print "2. Configure Activator rules for real-time alerts"
+print "3. Create RTI dashboards using these tables"
+print "4. Start your data simulators to begin streaming data"

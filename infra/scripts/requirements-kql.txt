@@ -1,0 +1,5 @@
+# Requirements for EventHouse creation and schema deployment
+# Install with: pip install -r requirements-kql.txt
+
+# HTTP requests for Fabric API
+requests>=2.31.0
