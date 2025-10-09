@@ -2,7 +2,7 @@
 
 ## Welcome to the RTI Solution Accelerator Project! 👋
 
-This guide provides concept-focused educational materials to get your team up to speed with Microsoft Fabric Real-Time Intelligence. Whether you're new to Fabric or coming from Power BI, this guide will help you understand the key concepts and components we'll be working with.
+This guide provides concept-focused educational materials to get our project team up to speed with Microsoft Fabric Real-Time Intelligence. Whether you're new to Fabric or coming from Power BI, this guide will help you understand the key concepts and components we'll be working with.
 
 ---
 
