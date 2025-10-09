@@ -43,52 +43,61 @@ This document outlines the architecture design for a **standalone** Microsoft Fa
 │                           Pure RTI Storage & Analytics Layer                    │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────────────────────────────────────────────────────────┐ │
-│  │                           EventHouse (KQL Database)                         │ │
+│  │                    EventHouse: fabrikam_eventhouse                          │ │
 │  │                                                                             │ │
-│  │  ┌─────────────────────────────────────────────────────────────────────────┐│ │
-│  │  │ Real-time + Historical RTI Data (Self-Contained)                       ││ │
-│  │  │                                                                         ││ │
-│  │  │ • Clickstream Events (real-time + 30-day history)                      ││ │
-│  │  │ • Manufacturing Telemetry (real-time + 90-day history)                 ││ │
-│  │  │ • Shipping Events (real-time + 90-day history)                         ││ │
-│  │  │ • Anomaly Detection Results (real-time + 12-month history)             ││ │
-│  │  │ • Statistical Baselines (percentiles, averages, trends)                ││ │
-│  │  └─────────────────────────────────────────────────────────────────────────┘│ │
+│  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────────────────┐│ │
+│  │  │  clickstream_db │ │manufacturing_db │ │         shipping_db             ││ │
+│  │  │                 │ │                 │ │                                 ││ │
+│  │  │• User Events    │ │• Equipment Data │ │• Logistics Events               ││ │
+│  │  │• Cart Activity  │ │• Telemetry      │ │• Carrier Performance            ││ │
+│  │  │• Product Views  │ │• Quality Metrics│ │• Delivery Tracking              ││ │_____________________
+│  │  │• E-commerce     │ │• Asset Health   │ │• Route Optimization             ││ │                    |
+│  │  │  Anomalies      │ │• Production     │ │• Shipping Anomalies             ││ │                    │
+│  │  │                 │ │  Anomalies      │ │                                 ││ │                    │
+│  │  └─────────────────┘ └─────────────────┘ └─────────────────────────────────┘│ │                    │
+│  └─────────────────────────────────────────────────────────────────────────────┘ │                    │
+└─────────────────────────────────────────────────────────────────────────────────┘                     │
+                                    │                                                                   │
+                                    ▼                                                                   │
+┌─────────────────────────────────────────────────────────────────────────────────┐                     │
+│                  Simplified Real-Time Intelligence & Analytics Layer            │                     │
+├─────────────────────────────────────────────────────────────────────────────────┤                     │
+│  ┌─────────────────┐  ┌────────────────────────────────────────────────────────┐ │                    │
+│  │   Activator     │  │            KQL Analytics (All-in-One)                  │ │                    │
+│  │                 │  │                                                        │ │                    │
+│  │ • Alert Rules   │  │ • Statistical Anomaly Detection (Z-scores, percentiles)│ │                    │
+│  │ • Trigger       │  │ • 60-day Moving Window Baselines                       │ │                    │
+│  │   Actions       │  │ • Real-time Aggregations & Calculations                │ │                    │
+│  │ • Notifications │  │ • Cross-Domain Analytics (E-commerce → Mfg → Shipping) │ │                    │
+│  │ • Email/Teams   │  │ • Multi-level Severity Classification                  │ │                    │
+│  │ • Webhooks      │  │ • Seasonal Pattern Recognition (hour/day aware)        │ │                    │
+│  └─────────────────┘  └────────────────────────────────────────────────────────┘ │                    │
+└─────────────────────────────────────────────────────────────────────────────────┘                     │
+                                    │                                                                   │
+                                    ▼                                                                   │
+┌─────────────────────────────────────────────────────────────────────────────────┐                     │
+│                           Visualization & Action Layer                          │ ◄───────────────────┘
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────┐  ┌─────────────────────────────────────────┐ │
+│  │      RTI Dashboards             │  │        Fabric Data Agent               │ │
+│  │      (All-in-One)               │  │        (Natural Language)              │ │
+│  │                                 │  │                                        │ │
+│  │ • Real-time Monitoring          │  │ • Natural Language Queries             │ │ 
+│  │ • Historical Analysis (60+ days)│  │ • EventHouse Direct Access             │ │
+│  │ • Executive KPIs                │  │ • Conversational Interface             │ │
+│  │ • Analyst Deep-Dive             │  │ • Auto KQL Generation                  │ │
+│  │ • Native Anomaly Integration    │  │ • Cross-Domain Analysis                │ │
+│  │ • KQL-based Charts & Tables     │  │ • Business User Self-Service           │ │
+│  │ • Sub-second Performance        │  │ • Ad-hoc Exploration                   │ │
+│  │ • Multi-Stakeholder Views       │  │ • Contextual Follow-ups                │ │
+│  └─────────────────────────────────┘  └─────────────────────────────────────────┘ │
+│                                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐ │
+│  │                            Action Systems                                   │ │
+│  │                                                                             │ │
+│  │  • Email Notifications            • Teams Alerts                           │ │
+│  │  • Service Order Payload          • Triggers to invoke next steps          │ │
 │  └─────────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                  Simplified Real-Time Intelligence & Analytics Layer           │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────────────────────────────────────────────┐ │
-│  │   Activator     │  │            KQL Analytics (All-in-One)                  │ │
-│  │                 │  │                                                         │ │
-│  │ • Alert Rules   │  │ • Statistical Anomaly Detection (Z-scores, percentiles)│ │
-│  │ • Trigger       │  │ • 60-day Moving Window Baselines                       │ │
-│  │   Actions       │  │ • Real-time Aggregations & Calculations                │ │
-│  │ • Notifications │  │ • Cross-Domain Analytics (E-commerce → Mfg → Shipping) │ │
-│  │ • Email/Teams   │  │ • Multi-level Severity Classification                   │ │
-│  │ • Webhooks      │  │ • Seasonal Pattern Recognition (hour/day aware)        │ │
-│  └─────────────────┘  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                      Simplified Visualization & Action Layer                    │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────┐  ┌─────────────────────────────────┐  │
-│  │         RTI Dashboards (All-in-One)     │  │        Action Systems           │  │
-│  │                                         │  │                                 │  │
-│  │ • Real-time Monitoring (Operations)     │  │ • Email Notifications          │  │
-│  │ • Historical Analysis (60+ days)        │  │ • Teams Alerts                 │  │
-│  │ • Executive KPIs (Business Leaders)     │  │ • Custom Webhooks              │  │
-│  │ • Analyst Deep-Dive (Data Teams)        │  │ • Business Process Triggers    │  │
-│  │ • Native Anomaly Integration            │  │                                 │  │
-│  │ • KQL-based Charts & Tables             │  │                                 │  │
-│  │ • Sub-second Performance                │  │                                 │  │
-│  │ • Multi-Stakeholder Views               │  │                                 │  │
-│  └─────────────────────────────────────────┘  └─────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -123,7 +132,7 @@ This document outlines the architecture design for a **standalone** Microsoft Fa
 
 ### 3. Real-Time Analytics & Storage Layer
 
-#### 3.1 EventHouse (KQL Database) - DETAILED EXPLANATION
+#### 3.1 EventHouse Architecture - DETAILED EXPLANATION
 
 **What is EventHouse?**
 
@@ -131,16 +140,72 @@ This document outlines the architecture design for a **standalone** Microsoft Fa
 - It's a KQL (Kusto Query Language) database optimized for time-series and streaming data
 - Unlike traditional SQL databases, it's columnar and designed for fast ingestion and analytical queries
 
+**EventHouse Structure:**
+
+Our solution uses one EventHouse named **`fabrikam_eventhouse`** containing three separate KQL databases for domain separation:
+
+```
+fabrikam_eventhouse/
+├── clickstream_db          # E-commerce and user behavior data
+├── manufacturing_db        # Production and equipment telemetry
+└── shipping_db            # Logistics and delivery tracking
+```
+
+**Benefits of Multiple Databases:**
+- **Domain Separation**: Clear data boundaries for different business areas
+- **Security Isolation**: Fine-grained access control per business domain
+- **Performance Optimization**: Dedicated resources and tuning per workload
+- **Team Ownership**: Different teams can manage their respective domains
+- **Cross-Database Analytics**: KQL supports queries across multiple databases
+- **Scalability**: Each database can scale independently based on data volume
+- **Data Governance**: Separate retention policies and compliance controls per domain
+
+**Usage Patterns:**
+
+**Single Database Queries (within domain):**
+```sql
+-- Query within clickstream_db only
+ClickstreamEvents
+| where timestamp >= ago(1h)
+| summarize EventCount = count() by event_type
+
+-- Query within manufacturing_db only  
+ManufacturingTelemetry
+| where timestamp >= ago(1h)
+| summarize AvgTemp = avg(Temperature) by AssetId
+```
+
+**Cross-Database Queries (correlation analysis):**
+```sql
+-- Correlate e-commerce activity with manufacturing output
+let ecommerce_orders = cluster('fabrikam_eventhouse').database('clickstream_db').ClickstreamEvents
+    | where event_type == "purchase" and timestamp >= ago(1d)
+    | summarize OrderCount = count() by bin(timestamp, 1h), product_id;
+
+let production_output = cluster('fabrikam_eventhouse').database('manufacturing_db').ManufacturingTelemetry  
+    | where timestamp >= ago(1d)
+    | summarize ProductionCount = count() by bin(timestamp, 1h), ProductId;
+
+ecommerce_orders
+| join kind=inner production_output on $left.timestamp == $right.timestamp and $left.product_id == $right.ProductId
+| extend DemandSupplyRatio = OrderCount * 1.0 / ProductionCount
+| where DemandSupplyRatio > 1.5  // Demand exceeding supply
+```
+
 **Do you need to create tables?**
-- YES, you must create tables with defined schemas (like SQL DDL)
+- YES, you must create tables with defined schemas (like SQL DDL) in each database
 - Tables are automatically partitioned by time and optimized for streaming ingestion
 - Data is automatically indexed and compressed
 
 **Database Design (Aligned with Sample Data)**:
 
-Based on the RTI-Hackathon simulators, here are the exact table schemas:
+Based on the RTI-Hackathon simulators, here are the exact table schemas for each database:
 
 ```sql
+-- =============================================================================
+-- DATABASE 1: clickstream_db (E-commerce and User Behavior Data)
+-- =============================================================================
+
 -- 1. Clickstream Events Table (from Clickstream Simulator.ipynb)
 .create table ClickstreamEvents (
     event_id: string,                    -- UUID from simulator
@@ -160,6 +225,24 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     payload: dynamic                     -- Event-specific data (price, cart_items, etc.)
 )
 
+-- Clickstream Anomaly Detection Results
+.create table ClickstreamAnomalies (
+    timestamp: datetime,
+    anomaly_type: string,               -- cart_spike, conversion_drop, traffic_anomaly, etc.
+    product_id: string,                 -- PROD4000-PROD4019
+    user_id: string,                    -- User identifier
+    anomaly_score: real,                -- Calculated anomaly score
+    baseline_value: real,               -- Historical baseline
+    current_value: real,                -- Current observed value
+    severity: string,                   -- Low, Medium, High, Critical
+    description: string,                -- Human readable description
+    metadata: dynamic                   -- Additional context
+)
+
+-- =============================================================================
+-- DATABASE 2: manufacturing_db (Production and Equipment Telemetry)
+-- =============================================================================
+
 -- 2. Manufacturing Telemetry Table (from Manufacturing Simulator.ipynb)
 .create table ManufacturingTelemetry (
     event_type: string,                  -- "production" event type
@@ -177,6 +260,44 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     Temperature: real,                   -- Operating temperature
     Humidity: int                        -- Environmental humidity
 )
+
+-- Manufacturing Sites Reference Table
+.create table Sites (
+    SiteId: string,
+    City: string,
+    Country: string,
+    Region: string,
+    Latitude: real,
+    Longitude: real
+)
+
+-- Manufacturing Assets Reference Table
+.create table Assets (
+    AssetId: string,
+    AssetName: string,
+    AssetType: string,
+    SiteId: string,
+    InstallationDate: datetime,
+    MaintenanceSchedule: string
+)
+
+-- Manufacturing Anomaly Detection Results
+.create table ManufacturingAnomalies (
+    timestamp: datetime,
+    anomaly_type: string,               -- temperature_spike, vibration_anomaly, defect_rate_high, etc.
+    AssetId: string,                    -- Equipment identifier
+    SiteId: string,                     -- Site identifier
+    anomaly_score: real,                -- Calculated anomaly score
+    baseline_value: real,               -- Historical baseline
+    current_value: real,                -- Current observed value
+    severity: string,                   -- Low, Medium, High, Critical
+    description: string,                -- Human readable description
+    metadata: dynamic                   -- Additional context
+)
+
+-- =============================================================================
+-- DATABASE 3: shipping_db (Logistics and Delivery Tracking)
+-- =============================================================================
 
 -- 3. Shipping Events Table (from Shipping Simulator.ipynb)
 .create table ShippingEvents (
@@ -196,25 +317,7 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     location_coordinates: dynamic       -- Current GPS coordinates
 )
 
--- 4. Reference Tables (Master data for all simulators)
-.create table Sites (
-    SiteId: string,
-    City: string,
-    Country: string,
-    Region: string,
-    Latitude: real,
-    Longitude: real
-)
-
-.create table Assets (
-    AssetId: string,
-    AssetName: string,
-    AssetType: string,
-    SiteId: string,
-    InstallationDate: datetime,
-    MaintenanceSchedule: string
-)
-
+-- Shipping Carriers Reference Table
 .create table Carriers (
     CarrierId: string,
     CarrierName: string,
@@ -223,12 +326,12 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     AvgDeliveryTime: int
 )
 
--- 5. Anomaly Detection Results Table
-.create table AnomalyDetectionResults (
+-- Shipping Anomaly Detection Results
+.create table ShippingAnomalies (
     timestamp: datetime,
-    anomaly_type: string,               -- clickstream_spike, manufacturing_outlier, shipping_delay, etc.
-    source_table: string,               -- ClickstreamEvents, ManufacturingTelemetry, ShippingEvents
-    entity_id: string,                  -- ProductId, AssetId, etc.
+    anomaly_type: string,               -- delivery_delay, route_deviation, carrier_performance, etc.
+    tracking_number: string,            -- Package identifier
+    carrier: string,                    -- Shipping carrier
     anomaly_score: real,                -- Calculated anomaly score
     baseline_value: real,               -- Historical baseline
     current_value: real,                -- Current observed value
@@ -238,9 +341,30 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
 )
 ```
 
+**Cross-Database Query Examples:**
+
+```sql
+-- Example: Correlate manufacturing issues with shipping delays
+-- Query across manufacturing_db and shipping_db
+let manufacturing_issues = cluster('fabrikam_eventhouse').database('manufacturing_db').ManufacturingAnomalies
+    | where timestamp >= ago(1d) and severity in ("High", "Critical")
+    | project timestamp, ProductId = AssetId, anomaly_type;
+
+let shipping_delays = cluster('fabrikam_eventhouse').database('shipping_db').ShippingAnomalies  
+    | where timestamp >= ago(1d)  
+    | project timestamp, tracking_number, delay_minutes;
+
+manufacturing_issues
+| join kind=inner shipping_delays on $left.timestamp == $right.timestamp  
+| where delay_minutes > 60
+| summarize ImpactedShipments = count() by bin(timestamp, 1h), ProductId
+```
+
 **Data Ingestion Policies**:
 ```sql
--- Set up streaming ingestion for Clickstream data
+-- =============================================================================
+-- CLICKSTREAM_DB - Ingestion Mappings
+-- =============================================================================
 .create table ClickstreamEvents ingestion json mapping "ClickstreamMapping"
 ```[
     {"column":"event_id","path":"$.event_id"},
@@ -260,7 +384,9 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     {"column":"payload","path":"$.payload"}
 ]```
 
--- Set up streaming ingestion for Manufacturing data
+-- =============================================================================
+-- MANUFACTURING_DB - Ingestion Mappings  
+-- =============================================================================
 .create table ManufacturingTelemetry ingestion json mapping "ManufacturingMapping"
 ```[
     {"column":"event_type","path":"$.event_type"},
@@ -279,7 +405,9 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     {"column":"Humidity","path":"$.Humidity"}
 ]```
 
--- Set up streaming ingestion for Shipping data  
+-- =============================================================================
+-- SHIPPING_DB - Ingestion Mappings
+-- =============================================================================
 .create table ShippingEvents ingestion json mapping "ShippingMapping"
 ```[
     {"column":"event_id","path":"$.event_id"},
@@ -298,9 +426,16 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
     {"column":"location_coordinates","path":"$.location_coordinates"}
 ]```
 
--- Enable streaming ingestion
+-- =============================================================================
+-- Enable streaming ingestion for all databases
+-- =============================================================================
+-- For clickstream_db
 .alter table ClickstreamEvents policy streamingingestion enable
+
+-- For manufacturing_db  
 .alter table ManufacturingTelemetry policy streamingingestion enable
+
+-- For shipping_db
 .alter table ShippingEvents policy streamingingestion enable
 ```
 
@@ -319,13 +454,18 @@ Based on the RTI-Hackathon simulators, here are the exact table schemas:
 **Complete KQL-Only Anomaly Detection:**
 
 ```sql
--- Clickstream Anomaly Detection (Pure KQL with 60-day baselines)
+-- =============================================================================
+-- CROSS-DATABASE ANOMALY DETECTION QUERIES
+-- =============================================================================
+
+-- Clickstream Anomaly Detection (using clickstream_db)
 let baselineWindow = 60d;  -- Use full EventHouse retention
 let detectionWindow = 5m;
 let threshold = 3.0;
 
 -- ADVANCED KQL-ONLY BASELINE CALCULATION (All statistics in pure KQL)
-let current_data = ClickstreamEvents | where timestamp >= ago(detectionWindow);
+let current_data = cluster('fabrikam_eventhouse').database('clickstream_db').ClickstreamEvents 
+    | where timestamp >= ago(detectionWindow);
 
 // 🔄 MOVING WINDOW EXPLANATION:
 // This creates a 60-day sliding window that automatically updates:
@@ -333,7 +473,7 @@ let current_data = ClickstreamEvents | where timestamp >= ago(detectionWindow);
 // - Hour 2: Uses data from (60 days - 1 hour) ago to 5 minutes ago
 // - The baseline automatically adapts as your business evolves!
 
-let statistical_baselines = ClickstreamEvents
+let statistical_baselines = cluster('fabrikam_eventhouse').database('clickstream_db').ClickstreamEvents
     | where timestamp between (ago(baselineWindow) .. ago(detectionWindow))  // 60-day moving window
     | summarize 
         baseline_mean = avg(cart_value),            // Rolling average
@@ -374,8 +514,8 @@ current_data
 | project timestamp, product_id, cart_value, z_score, severity, confidence, 
           baseline_mean, baseline_stdev
 
--- Manufacturing Equipment (Pure KQL with Statistical Baselines)
-let equipment_baselines = ManufacturingTelemetry
+-- Manufacturing Equipment (Pure KQL with Statistical Baselines - using manufacturing_db)
+let equipment_baselines = cluster('fabrikam_eventhouse').database('manufacturing_db').ManufacturingTelemetry
     | where timestamp between (ago(60d) .. ago(1h))
     | summarize
         temp_mean = avg(Temperature),
@@ -386,7 +526,7 @@ let equipment_baselines = ManufacturingTelemetry
         defect_p95 = percentile(DefectProbability, 95)
     by AssetId;
 
-ManufacturingTelemetry
+cluster('fabrikam_eventhouse').database('manufacturing_db').ManufacturingTelemetry
 | where timestamp >= ago(5m)
 | join kind=inner equipment_baselines on AssetId
 | extend
@@ -408,8 +548,8 @@ ManufacturingTelemetry
 | project timestamp, AssetId, Temperature, Vibration, DefectProbability, 
           temp_z_score, equipment_health
 
--- Shipping Delay Detection
-ShippingEvents  
+-- Shipping Delay Detection (using shipping_db)
+cluster('fabrikam_eventhouse').database('shipping_db').ShippingEvents  
 | where timestamp >= ago(1h)
 | where event_type == "delivered" and delay_minutes > 60
 | summarize AvgDelay = avg(delay_minutes), DelayedShipments = count() 
@@ -1090,162 +1230,136 @@ historical_production
 | order by ProductionRatio asc
 ```
 
-## Data Domains & Use Cases
+#### 5.2 Fabric Data Agent - Natural Language Query Interface
 
-### Primary Domains (Building on Existing Foundation)
-1. **E-commerce**: Real-time customer behavior and conversion optimization
-2. **Manufacturing**: Real-time production monitoring and quality control  
-3. **Logistics**: Dynamic shipping and delivery tracking
-4. **Operations**: Cross-domain performance monitoring and optimization
+The Fabric Data Agent provides users with a conversational interface to query data from the EventHouse using natural language, making real-time analytics accessible to business users without requiring KQL expertise.
 
-### New RTI-Specific Domains
-1. **Customer Experience**: Real-time personalization and behavior analytics
-2. **Asset Management**: Real-time equipment health monitoring
-3. **Supply Chain**: End-to-end logistics visibility
-4. **Quality Assurance**: Continuous quality control and defect prevention
+**Key Capabilities:**
 
-## Key Use Cases
+**Natural Language Processing:**
+- **Intent Recognition**: Understands business questions like "Show me anomalies in manufacturing data today"
+- **Contextual Awareness**: Maintains conversation context for follow-up questions
+- **Auto-completion**: Suggests relevant queries based on available data schemas
+- **Query Translation**: Converts natural language to optimized KQL queries automatically
 
-### 1. Real-Time E-commerce Optimization
-- **Conversion Funnel**: Live monitoring of customer journey and drop-off points
-- **Anomaly Detection**: Identify unusual shopping patterns and potential issues
-- **Personalization**: Real-time product recommendations based on behavior
+**EventHouse Integration:**
+- **Direct Access**: Queries EventHouse data in real-time without data movement
+- **Schema Awareness**: Understands table structures and relationships automatically
+- **Security Compliance**: Respects user permissions and data access policies
+- **Performance Optimization**: Generates efficient KQL queries for fast response times
 
-### 2. Manufacturing Operations Excellence
-- **Equipment Monitoring**: Real-time temperature, vibration, and performance tracking
-- **Quality Control**: Continuous defect detection and quality assurance
-- **Production Optimization**: Dynamic throughput monitoring and bottleneck identification
+**Example User Interactions:**
 
-### 3. Smart Logistics & Shipping
-- **Delivery Tracking**: Real-time shipment location and status updates
-- **Delay Prevention**: Early detection of shipping delays and route optimization
-- **Carrier Performance**: Continuous monitoring of delivery performance metrics
+```
+User: "What are the top 5 products with anomalies in the last hour?"
+Data Agent: Executing query on ClickstreamEvents...
 
-### 4. Cross-Domain Intelligence
-- **Demand Forecasting**: Real-time demand sensing and prediction
-- **Inventory Optimization**: Dynamic inventory level adjustments
-- **Logistics Tracking**: Real-time shipment monitoring and route optimization
+Generated KQL:
+ClickstreamEvents
+| where timestamp >= ago(1h) and spike_flag == true
+| summarize AnomalyCount = count() by product_id
+| top 5 by AnomalyCount desc
+| project ProductID = product_id, Anomalies = AnomalyCount
 
-### 4. Security and Fraud Detection
-- **Anomaly Detection**: Unusual patterns in customer behavior or system access
-- **Real-time Alerts**: Immediate notification of potential security threats
-- **Investigation Tools**: Detailed drill-down capabilities for security incidents
+Results:
+ProductID    | Anomalies
+PROD4015     | 23
+PROD4008     | 18
+PROD4012     | 15
+PROD4003     | 12
+PROD4019     | 9
+```
 
-## Technical Implementation Considerations
+```
+User: "Show me manufacturing equipment with high temperatures"
+Data Agent: Querying ManufacturingTelemetry for temperature anomalies...
 
-### Performance & Scalability
-- **EventStream**: Configure for high-throughput scenarios (10,000+ events/second)
-- **EventHouse**: Optimize ingestion policies and retention settings
-- **Query Optimization**: Materialized views for frequently accessed aggregations
-- **Caching Strategy**: Strategic use of query result caching
+Generated KQL:
+ManufacturingTelemetry
+| where timestamp >= ago(1h)
+| where Temperature > 30.0  // Above normal operating range
+| summarize AvgTemp = avg(Temperature), MaxTemp = max(Temperature), 
+           EventCount = count() by AssetId, City
+| order by MaxTemp desc
 
-### Data Quality & Governance
-- **Schema Registry**: Centralized schema management for all event types
-- **Data Lineage**: Track data flow from source to consumption
-- **Quality Monitoring**: Automated data quality checks and alerts
-- **GDPR Compliance**: Data retention and deletion policies
+Results:
+AssetId      | City        | AvgTemp | MaxTemp | EventCount
+ASSET_Berlin_3| Berlin     | 32.5    | 35.2    | 45
+ASSET_Munich_1| Munich     | 31.8    | 33.7    | 38
+ASSET_Hamburg_2| Hamburg   | 30.9    | 32.1    | 29
+```
 
-### Security & Compliance
-- **Azure Active Directory**: Unified authentication and authorization
-- **Network Security**: Private endpoints and network isolation
-- **Encryption**: End-to-end encryption for sensitive data
-- **Audit Logging**: Comprehensive audit trail for all operations
+```
+User: "Compare shipping delays between carriers this week"
+Data Agent: Analyzing ShippingEvents for carrier performance...
 
-### Deployment & DevOps
-- **Infrastructure as Code**: Bicep templates for consistent deployments
-- **CI/CD Pipelines**: Automated testing and deployment processes
-- **Monitoring**: Comprehensive health monitoring and alerting
-- **Disaster Recovery**: Backup and recovery procedures
+Generated KQL:
+ShippingEvents
+| where timestamp >= ago(7d) and event_type == "delivered"
+| where delay_minutes > 0
+| summarize 
+    TotalShipments = count(),
+    DelayedShipments = countif(delay_minutes > 60),
+    AvgDelayMinutes = avg(delay_minutes),
+    DelayRate = round(countif(delay_minutes > 60) * 100.0 / count(), 1)
+by carrier
+| order by DelayRate desc
 
-## Team Staffing Plan & Required Skillsets
+Results:
+Carrier   | TotalShipments | DelayedShipments | AvgDelayMinutes | DelayRate%
+FedEx     | 1,245         | 89               | 15.3            | 7.1
+UPS       | 2,156         | 108              | 12.8            | 5.0
+DHL       | 987           | 35               | 8.9             | 3.5
+```
 
-### Optimized Team Structure (3-4 people)
+**Advanced Features:**
 
-**Team Efficiency Multipliers**:
-- **GitHub Copilot**: 40-50% faster code development across all domains
-- **Multi-skilled Team**: DevOps + Application development capabilities per person  
-- **Solution Accelerator Focus**: Demonstration/prototype quality, not production-hardened
-- **Existing Foundation**: Building on proven unified data foundation patterns
+**1. Contextual Follow-up Questions:**
+```
+User: "Show me the equipment with high defect rates"
+Data Agent: [Shows results for ManufacturingTelemetry with DefectProbability > 0.15]
 
-#### **1. Technical Lead / Solution Architect (1 person)**
-**Responsibilities**:
-- Architecture design and technical decisions
-- RTI platform configuration (EventStream, EventHouse, Activator)
-- Advanced KQL development and optimization
-- Solution validation and integration strategy
-- Technical documentation and guidance
+User: "What about their temperature readings?"
+Data Agent: [Automatically includes Temperature data for the same equipment from previous query]
 
-**Key Skills**:
-- Microsoft Fabric RTI expertise + KQL mastery
-- Azure architecture + DevOps capabilities
-- GitHub Copilot power user for rapid development
-- Solution accelerator development experience
+User: "When did this start?"
+Data Agent: [Shows time-series analysis of when defect rates began increasing]
+```
 
-**GitHub Copilot Impact**: Accelerates KQL development, Bicep templates, documentation
+**2. Cross-Domain Analysis:**
+```
+User: "Are there any correlations between manufacturing delays and shipping problems?"
+Data Agent: Analyzing relationships between ManufacturingTelemetry and ShippingEvents...
 
-#### **2. Full-Stack RTI Developer (2 people)**
-**Responsibilities**:
-- **KQL statistical anomaly detection** (Z-scores, percentiles, moving windows)
-- EventStream/EventHouse configuration + Activator rules
-- Data simulators enhancement + RTI dashboard development
-- CI/CD pipelines + Infrastructure as Code (Bicep)
-- End-to-end feature implementation (backend + frontend + infrastructure)
+Generated KQL:
+let manufacturing_delays = ManufacturingTelemetry
+    | where timestamp >= ago(7d) and DefectProbability > 0.1
+    | summarize DefectEvents = count() by bin(timestamp, 1h), ProductId;
+    
+let shipping_delays = ShippingEvents  
+    | where timestamp >= ago(7d) and delay_minutes > 60
+    | summarize DelayEvents = count() by bin(timestamp, 1h);
+    
+manufacturing_delays
+| join kind=inner shipping_delays on timestamp
+| where DefectEvents > 5 and DelayEvents > 3
+| project timestamp, ProductId, DefectEvents, DelayEvents
+```
 
-**Key Skills**:
-- KQL + JavaScript/TypeScript development
-- Microsoft Fabric RTI + Azure DevOps automation
-- Bicep/IaC + GitHub Actions/Azure Pipelines
-- Multi-domain development capabilities
-- **GitHub Copilot expert users for rapid development**
+**3. Anomaly Explanation:**
+```
+User: "Why is PROD4015 showing so many anomalies?"
+Data Agent: Analyzing anomaly patterns for PROD4015...
 
-**GitHub Copilot Impact**: 
-- 40-50% faster code generation across KQL, JavaScript, Bicep
-- Automated test creation and debugging assistance
-- Quick API development and integration scripts
-- Accelerated documentation and inline comments
-- Pattern recognition for complex analytics queries
+Generated Analysis:
+- Anomaly started at 2:30 PM today
+- Cart spike magnitude increased from normal 5-10 to 85-95
+- Coincides with social media referral traffic spike
+- Similar pattern seen during previous product launches
+- Recommended action: Monitor conversion rates for next 2 hours
+```
 
-### Extended Team (Part-time/Consultative Roles)
 
-#### **Business Domain Expert (0.5 FTE)**
-**Responsibilities**:
-- Business use case validation
-- Domain-specific requirements gathering
-- User acceptance testing coordination
-- Business metrics definition
-
-**Required Skills**:
-- Manufacturing/retail domain knowledge
-- Business intelligence experience
-- Requirements gathering skills
-- User experience perspective
-
-#### **Security/Compliance Specialist (0.3 FTE)**
-**Responsibilities**:
-- Security architecture review
-- Compliance requirements validation
-- Security testing and validation
-- Security documentation
-
-**Required Skills**:
-- Azure security expertise
-- Data governance and compliance
-- Security testing methodologies
-- GDPR/privacy regulations knowledge
-
-### GitHub Copilot Acceleration Benefits
-
-**Code Generation Speed**: 40-50% faster development across all languages
-- **KQL Queries**: Statistical analytics, complex joins, time-series analysis, anomaly detection
-- **KQL Statistical Functions**: Z-scores, percentiles, moving windows, seasonal patterns
-- **Bicep Templates**: Infrastructure patterns, resource configurations  
-- **JavaScript/API**: Dashboard integrations, webhook handlers, simulators
-
-**Quality Improvements**:
-- **Automated Testing**: Unit tests, integration tests, validation scripts
-- **Documentation**: Inline comments, README files, API documentation
-- **Error Handling**: Exception management, logging, monitoring patterns
-- **Best Practices**: Security patterns, performance optimizations, code standards
 
 ## Accelerated Development Timeline (8 Weeks Total)
 
@@ -1259,6 +1373,7 @@ historical_production
 ### **Phase 1: Rapid Foundation Setup (Weeks 1-2)**
 
 **Week 1: Environment & Core Implementation**
+
 - **Team**: Technical Lead + Full-Stack RTI Developer
 - **GitHub Copilot Acceleration**: Bicep templates, automation scripts, KQL schemas
 - **Deliverables**:
@@ -1559,69 +1674,7 @@ Write-Host "🎉 Deployment completed successfully!" -ForegroundColor Green
 Write-Host "📈 Access your RTI dashboards at: https://fabric.microsoft.com/workspace/$workspaceId" -ForegroundColor Blue
 ```
 
-### Community Engagement Strategy
-
-#### Documentation Excellence
-- **Quick Start Guide**: 5-minute deployment experience
-- **Video Tutorials**: Step-by-step walkthroughs
-- **Best Practices**: Production deployment guidelines
-- **Troubleshooting**: Common issues and solutions
-- **Architecture Deep Dive**: Technical implementation details
-
-#### Sample Scenarios
-- **E-commerce**: Real-time customer behavior analysis
-- **Manufacturing**: Predictive maintenance and quality control
-- **IoT**: Sensor data monitoring and alerting
-- **Finance**: Fraud detection and transaction monitoring
-
-#### Community Support
-- **GitHub Discussions**: Q&A and community support
-- **Issue Templates**: Structured bug reporting
-- **Contributing Guidelines**: Community contribution process
-- **Code of Conduct**: Community standards
-- **Regular Updates**: Monthly releases with new features
-
-### Success Metrics for Solution Accelerator
-
-#### Adoption Metrics
-- **GitHub Statistics**: Stars, forks, clones, unique visitors
-- **Deployment Success Rate**: % of successful azd deployments
-- **Time to Value**: Average time from azd up to first insights
-- **User Retention**: % of users who deploy multiple times
-
-#### Quality Metrics
-- **Deployment Reliability**: >95% successful deployments
-- **Documentation Quality**: <5% documentation-related issues
-- **Performance**: <30 minutes total deployment time
-- **Support Response**: <24 hours for critical issues
-
-#### Business Impact Metrics
-- **Microsoft Fabric Adoption**: Increase in RTI feature usage
-- **Customer Success Stories**: Documented use cases
-- **Conference Presentations**: Speaking opportunities and demos
-- **Partner Adoption**: Integration with partner solutions
-
-#### GitHub Copilot Acceleration Benefits
-- **Development Speed**: 40-50% faster code generation and debugging
-- **Code Quality**: Enhanced documentation and best practices integration
-- **Team Efficiency**: Reduced context switching between team members
-- **Innovation Focus**: More time for architecture and business logic vs. boilerplate code
-
-## Conclusion
-
-This Microsoft Fabric RTI solution accelerator provides a comprehensive foundation for **pure real-time intelligence applications**. With an optimized team of 3-4 multi-skilled professionals leveraging GitHub Copilot over 8 accelerated weeks, we can deliver a production-ready solution accelerator that:
-
-- **Is completely self-contained** using only RTI-Hackathon simulators and EventHouse
-- **Provides one-command deployment** via azd integration with no external dependencies
-- **Includes comprehensive documentation** and tutorials
-- **Supports multiple business scenarios** (e-commerce, manufacturing, shipping) out of the box
-- **Enables rapid community adoption** through excellent developer experience
-- **Leverages modern development practices** with GitHub Copilot acceleration and multi-skilled team structure
-- **Requires no existing data infrastructure** - EventHouse handles both real-time and historical needs
-- **Uses simplified visualization** - RTI dashboards serve all stakeholders (operations, executives, analysts)
-
-The combination of EventStream for ingestion, EventHouse for storage and analytics, Activator for alerting, and RTI dashboards for visualization creates a powerful, **simplified platform** for real-time business intelligence and operational monitoring. This pure RTI approach eliminates complexity while delivering comprehensive anomaly detection and business insights across multiple domains.
-
+#### 
 ## Team Recommendations
 
 ### **Key Changes Made Based on Your Feedback:**
@@ -1661,13 +1714,13 @@ ManufacturingTelemetry
 - **Advanced fraud detection**: Complex pattern recognition
 - **Customer lifetime value**: Behavioral clustering
 
-#### **3. Team Structure (5-6 People):**
+#### **3. Technical Team Structure (5-6 People):**
 
 | Role | Priority | Focus | Can Handle Documentation |
 |------|----------|-------|-------------------------|
 | **Technical Lead** | Critical | Architecture, KQL, Leadership, GitHub Copilot Expert | ✅ High-level docs |
-| **Full-Stack RTI Developers (2-3)** | Critical | EventStream, EventHouse, Activator, DevOps | ✅ All documentation |
-| **RTI Specialist** | Optional | Advanced RTI features, optimization | ✅ Technical docs |
+| **Full-Stack RTI Developers (3)** | Critical | EventStream, EventHouse, Activator, DevOps | ✅ All documentation |
+| **QA** | Critical | Quality Check | ✅ QA |
 
 #### **4. Timeline:**
 **Estimate**: 8 weeks 
